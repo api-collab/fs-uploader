@@ -1,0 +1,6 @@
+upload:
+  baseDir: ${java.io.tmpdir}
+  portal:
+    host: localhost
+    port: 8080
+    protocol: http

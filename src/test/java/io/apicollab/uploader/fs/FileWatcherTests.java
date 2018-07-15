@@ -1,6 +1,7 @@
 package io.apicollab.uploader.fs;
 
 import io.apicollab.uploader.fs.service.ApiUploadService;
+import org.awaitility.Duration;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -11,6 +12,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -32,55 +34,49 @@ public class FileWatcherTests {
     }
 
     @Test
-    public void upload_unsupported_filetype() throws IOException, InterruptedException {
+    public void upload_unsupported_filetype() throws IOException {
         String filename = "abc.txt";
         FileSystemUploaderTestUtils.createFile(uploaderConfig.getBaseDir(), filename);
-        Thread.sleep(100);
-        FileSystemUploaderTestUtils.assertFailure(uploaderConfig.getBaseDir(), filename);
+        await().atMost(Duration.ONE_SECOND).until(FileSystemUploaderTestUtils.assertFailure(uploaderConfig.getBaseDir(), filename));
     }
 
     @Test
-    public void supports_json() throws IOException, InterruptedException {
+    public void supports_json() throws IOException {
         String filename = "abc.json";
         doNothing().when(apiUploadService).upload(eq("abc.json"), anyString());
         FileSystemUploaderTestUtils.createFile(uploaderConfig.getBaseDir(), filename);
-        Thread.sleep(100);
-        FileSystemUploaderTestUtils.assertSuccess(uploaderConfig.getBaseDir(), filename);
+        await().atMost(Duration.ONE_SECOND).until(FileSystemUploaderTestUtils.assertSuccess(uploaderConfig.getBaseDir(), filename));
     }
 
     @Test
-    public void supports_yml() throws IOException, InterruptedException {
+    public void supports_yml() throws IOException {
         String filename = "abc.yml";
         doNothing().when(apiUploadService).upload(eq("abc.yml"), anyString());
         FileSystemUploaderTestUtils.createFile(uploaderConfig.getBaseDir(), filename);
-        Thread.sleep(100);
-        FileSystemUploaderTestUtils.assertSuccess(uploaderConfig.getBaseDir(), filename);
+        await().atMost(Duration.ONE_SECOND).until(FileSystemUploaderTestUtils.assertSuccess(uploaderConfig.getBaseDir(), filename));
     }
 
     @Test
-    public void supports_yaml() throws IOException, InterruptedException {
+    public void supports_yaml() throws IOException {
         String filename = "abc.yaml";
         doNothing().when(apiUploadService).upload(eq("abc.yaml"), anyString());
         FileSystemUploaderTestUtils.createFile(uploaderConfig.getBaseDir(), filename);
-        Thread.sleep(100);
-        FileSystemUploaderTestUtils.assertSuccess(uploaderConfig.getBaseDir(), filename);
+        await().atMost(Duration.ONE_SECOND).until(FileSystemUploaderTestUtils.assertSuccess(uploaderConfig.getBaseDir(), filename));
     }
 
     @Test
-    public void move_to_error_folder_when_processing_failed() throws IOException, InterruptedException {
+    public void move_to_error_folder_when_processing_failed() throws IOException {
         String filename = "swagger.yml";
         doThrow(RuntimeException.class).when(apiUploadService).upload(eq("swagger.yml"), anyString());
         FileSystemUploaderTestUtils.createFile(uploaderConfig.getBaseDir(), filename);
-        Thread.sleep(100);
-        FileSystemUploaderTestUtils.assertFailure(uploaderConfig.getBaseDir(), filename);
+        await().atMost(Duration.ONE_SECOND).until(FileSystemUploaderTestUtils.assertFailure(uploaderConfig.getBaseDir(), filename));
     }
 
     @Test
-    public void move_to_process_folder_when_processing_failed() throws IOException, InterruptedException {
+    public void move_to_process_folder_when_processing_failed() throws IOException {
         String filename = "swagger.yml";
         doThrow(RuntimeException.class).when(apiUploadService).upload(eq("swagger.yml"), anyString());
         FileSystemUploaderTestUtils.createFile(uploaderConfig.getBaseDir(), filename);
-        Thread.sleep(100);
-        FileSystemUploaderTestUtils.assertFailure(uploaderConfig.getBaseDir(), filename);
+        await().atMost(Duration.ONE_SECOND).until(FileSystemUploaderTestUtils.assertFailure(uploaderConfig.getBaseDir(), filename));
     }
 }

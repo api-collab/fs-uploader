@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,23 +36,29 @@ class FileSystemUploaderTestUtils {
         Files.createFile(path);
     }
 
-    public void assertFailure(String fileUploadDir, String filename) throws IOException {
-        assertThat(Files.exists(Paths.get(fileUploadDir, Constants.INPUT_FOLDER, filename))).isFalse();
-        try (Stream<Path> files = Files.list(Paths.get(fileUploadDir, Constants.ERROR_FOLDER))) {
-            assertThat(Stream.of(files).count()).isEqualTo(1);
-            String errorFilename = files.findFirst().get().getFileName().toString();
-            assertThat(errorFilename).startsWith(FilenameUtils.getBaseName(filename));
-            assertThat(errorFilename).endsWith(FilenameUtils.getExtension(filename));
-        }
+    public Callable<Boolean> assertFailure(String fileUploadDir, String filename) throws IOException {
+        return () -> {
+            assertThat(Files.exists(Paths.get(fileUploadDir, Constants.INPUT_FOLDER, filename))).isFalse();
+            try (Stream<Path> files = Files.list(Paths.get(fileUploadDir, Constants.ERROR_FOLDER))) {
+                assertThat(Stream.of(files).count()).isEqualTo(1);
+                String errorFilename = files.findFirst().get().getFileName().toString();
+                assertThat(errorFilename).startsWith(FilenameUtils.getBaseName(filename));
+                assertThat(errorFilename).endsWith(FilenameUtils.getExtension(filename));
+            }
+            return true;
+        };
     }
 
-    public void assertSuccess(String fileUploadDir, String filename) throws IOException {
-        assertThat(Files.exists(Paths.get(fileUploadDir, Constants.INPUT_FOLDER, filename))).isFalse();
-        try (Stream<Path> files = Files.list(Paths.get(fileUploadDir, Constants.PROCESSED_FOLDER))) {
-            assertThat(Stream.of(files).count()).isEqualTo(1);
-            String errorFilename = files.findFirst().get().getFileName().toString();
-            assertThat(errorFilename).startsWith(FilenameUtils.getBaseName(filename));
-            assertThat(errorFilename).endsWith(FilenameUtils.getExtension(filename));
-        }
+    public Callable<Boolean> assertSuccess(String fileUploadDir, String filename) throws IOException {
+        return () -> {
+            assertThat(Files.exists(Paths.get(fileUploadDir, Constants.INPUT_FOLDER, filename))).isFalse();
+            try (Stream<Path> files = Files.list(Paths.get(fileUploadDir, Constants.PROCESSED_FOLDER))) {
+                assertThat(Stream.of(files).count()).isEqualTo(1);
+                String errorFilename = files.findFirst().get().getFileName().toString();
+                assertThat(errorFilename).startsWith(FilenameUtils.getBaseName(filename));
+                assertThat(errorFilename).endsWith(FilenameUtils.getExtension(filename));
+            }
+            return true;
+        };
     }
 }

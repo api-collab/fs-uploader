@@ -69,13 +69,13 @@ class FileWatcher {
         String swaggerSpec;
         String fileType = FilenameUtils.getExtension(filename);
         if (!uploaderConfig.getSupportedFileTypes().contains(fileType)) {
-            throw new RuntimeException(Constants.INVALID_FILE_TYPE);
+            throw new UploaderException(Constants.INVALID_FILE_TYPE);
         }
         Path path = Paths.get(uploaderConfig.getBaseDir(), Constants.INPUT_FOLDER, filename);
         try (FileInputStream inputStream = FileUtils.openInputStream(new File(path.toAbsolutePath().toString()))) {
             swaggerSpec = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
         } catch (Exception e) {
-            throw new RuntimeException(Constants.CANNOT_READ_FILE_CONTENT, e);
+            throw new UploaderException(Constants.CANNOT_READ_FILE_CONTENT, e);
         }
         return swaggerSpec;
     }

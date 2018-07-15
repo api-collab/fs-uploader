@@ -2,6 +2,7 @@ package io.apicollab.uploader.fs.service;
 
 import io.apicollab.uploader.fs.Constants;
 import io.apicollab.uploader.fs.UploaderConfig;
+import io.apicollab.uploader.fs.UploaderException;
 import io.apicollab.uploader.fs.dto.ApiDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -42,7 +43,7 @@ public class ApiUploadService {
     public void upload(String filename, String spec) {
         ApiDTO apiDTO = ApiSpecParserService.parse(spec);
         if (StringUtils.isBlank(apiDTO.getApplicationId())) {
-            throw new RuntimeException(Constants.APP_ID_NOT_FOUND);
+            throw new UploaderException(Constants.APP_ID_NOT_FOUND);
         }
         ByteArrayResource byteArrayResource = new ByteArrayResource(spec.getBytes()) {
             @Override

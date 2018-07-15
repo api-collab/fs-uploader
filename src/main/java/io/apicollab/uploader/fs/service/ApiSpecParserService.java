@@ -1,5 +1,6 @@
 package io.apicollab.uploader.fs.service;
 
+import io.apicollab.uploader.fs.Constants;
 import io.apicollab.uploader.fs.dto.ApiDTO;
 import io.swagger.models.Swagger;
 import io.swagger.parser.OpenAPIParser;
@@ -20,7 +21,7 @@ class ApiSpecParserService {
 
     public static ApiDTO parse(String spec) {
         if (StringUtils.isBlank(spec)) {
-            throw new RuntimeException("API specification is empty");
+            throw new RuntimeException(Constants.API_SPEC_EMPTY);
         }
         spec = spec.trim();
         ApiDTO result;
@@ -37,7 +38,7 @@ class ApiSpecParserService {
         SwaggerParseResult result = new OpenAPIParser().readContents(oasString, null, null);
         if (result.getOpenAPI() == null || !result.getMessages().isEmpty()) {
             log.error(result.getMessages().toString());
-            throw new RuntimeException("Failed to parse OAS file: " + result.getMessages().toString());
+            throw new RuntimeException(Constants.API_SPEC_PARSE_FAILURE);
         } else {
             OpenAPI openAPI = result.getOpenAPI();
             Info info = openAPI.getInfo();
@@ -52,9 +53,12 @@ class ApiSpecParserService {
     private ApiDTO parseSwagger(String swaggerString) {
         Swagger swagger = new SwaggerParser().parse(swaggerString);
         if (swagger == null) {
-            throw new IllegalArgumentException("Failed to parse swagger file");
+            throw new RuntimeException(Constants.API_SPEC_PARSE_FAILURE);
         } else {
             io.swagger.models.Info info = swagger.getInfo();
+            if (info == null) {
+                throw new RuntimeException(Constants.API_SPEC_PARSE_FAILURE);
+            }
             String appId = info.getVendorExtensions().get("x-app-id") == null
                     ? null : String.valueOf(info.getVendorExtensions().get("x-app-id"));
             return ApiDTO.builder()

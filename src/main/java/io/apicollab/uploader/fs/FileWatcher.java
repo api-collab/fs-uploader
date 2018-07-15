@@ -21,10 +21,6 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 @Slf4j
 class FileWatcher {
 
-    private static final String INPUT_FOLDER = "api_input";
-    private static final String PROCESSED_FOLDER = "api_processed";
-    private static final String ERROR_FOLDER = "api_error";
-
     @Autowired
     private ApiUploadService apiUploadService;
     @Autowired
@@ -32,13 +28,13 @@ class FileWatcher {
 
     @Async
     public void initialize() throws InterruptedException, IOException {
-        createRequiredDirectories();
+        createFolders();
         setupFileWatcher();
     }
 
     private void setupFileWatcher() throws InterruptedException, IOException {
         WatchService watchService = FileSystems.getDefault().newWatchService();
-        Path path = Paths.get(uploaderConfig.getBaseDir(), INPUT_FOLDER);
+        Path path = Paths.get(uploaderConfig.getBaseDir(), Constants.INPUT_FOLDER);
         path.register(watchService, ENTRY_CREATE);
 
         WatchKey watchKey;
@@ -51,11 +47,11 @@ class FileWatcher {
                 log.debug("Processing file: {}", filename);
                 try {
                     String spec = loadSpec(filename);
-                    apiUploadService.upload(spec);
+                    apiUploadService.upload(filename, spec);
                     moveToProcessedFolder(filename);
                 } catch (Exception e) {
-                    log.error(e.getMessage(), e);
                     moveToErrorFolder(filename);
+                    log.error(e.getMessage(), e);
                 }
             }
             log.info("Scanning filesystem for changes...");
@@ -63,24 +59,30 @@ class FileWatcher {
         }
     }
 
-    private String loadSpec(String filename) throws IOException {
+    private void createFolders() throws IOException {
+        Files.createDirectories(Paths.get(uploaderConfig.getBaseDir(), Constants.INPUT_FOLDER));
+        Files.createDirectories(Paths.get(uploaderConfig.getBaseDir(), Constants.PROCESSED_FOLDER));
+        Files.createDirectories(Paths.get(uploaderConfig.getBaseDir(), Constants.ERROR_FOLDER));
+    }
+
+    private String loadSpec(String filename) {
         String swaggerSpec;
         String fileType = FilenameUtils.getExtension(filename);
         if (!uploaderConfig.getSupportedFileTypes().contains(fileType)) {
-            throw new RuntimeException("Unsupported file type - " + filename);
+            throw new RuntimeException(Constants.INVALID_FILE_TYPE);
         }
-        Path path = Paths.get(uploaderConfig.getBaseDir(), INPUT_FOLDER, filename);
+        Path path = Paths.get(uploaderConfig.getBaseDir(), Constants.INPUT_FOLDER, filename);
         try (FileInputStream inputStream = FileUtils.openInputStream(new File(path.toAbsolutePath().toString()))) {
             swaggerSpec = IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
         } catch (Exception e) {
-            throw new RuntimeException("Error occurred while reading file content.", e);
+            throw new RuntimeException(Constants.CANNOT_READ_FILE_CONTENT, e);
         }
         return swaggerSpec;
     }
 
     private void moveToErrorFolder(String filename) {
-        Path inputPath = Paths.get(uploaderConfig.getBaseDir(), INPUT_FOLDER, filename);
-        Path errorPath = Paths.get(uploaderConfig.getBaseDir(), ERROR_FOLDER, getTargetFilename(filename));
+        Path inputPath = Paths.get(uploaderConfig.getBaseDir(), Constants.INPUT_FOLDER, filename);
+        Path errorPath = Paths.get(uploaderConfig.getBaseDir(), Constants.ERROR_FOLDER, getTargetFilename(filename));
         try {
             Files.move(inputPath, errorPath);
         } catch (IOException e) {
@@ -90,20 +92,14 @@ class FileWatcher {
     }
 
     private void moveToProcessedFolder(String filename) {
-        Path inputPath = Paths.get(uploaderConfig.getBaseDir(), INPUT_FOLDER, filename);
-        Path processedPath = Paths.get(uploaderConfig.getBaseDir(), PROCESSED_FOLDER, getTargetFilename(filename));
+        Path inputPath = Paths.get(uploaderConfig.getBaseDir(), Constants.INPUT_FOLDER, filename);
+        Path processedPath = Paths.get(uploaderConfig.getBaseDir(), Constants.PROCESSED_FOLDER, getTargetFilename(filename));
         try {
             Files.move(inputPath, processedPath);
         } catch (IOException e) {
             log.error("Error occurred while moving file to processed folder", e);
         }
         log.info("File {} moved to processed folder", filename);
-    }
-
-    private void createRequiredDirectories() throws IOException {
-        Files.createDirectories(Paths.get(uploaderConfig.getBaseDir(), INPUT_FOLDER));
-        Files.createDirectories(Paths.get(uploaderConfig.getBaseDir(), PROCESSED_FOLDER));
-        Files.createDirectories(Paths.get(uploaderConfig.getBaseDir(), ERROR_FOLDER));
     }
 
     private String getTargetFilename(String filename) {

@@ -1,7 +1,9 @@
 package io.apicollab.uploader.fs.service;
 
+import io.apicollab.uploader.fs.Constants;
 import io.apicollab.uploader.fs.UploaderConfig;
 import io.apicollab.uploader.fs.dto.ApiDTO;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
@@ -13,6 +15,7 @@ import org.springframework.web.client.RestTemplate;
 import javax.annotation.PostConstruct;
 
 @Service
+@Slf4j
 public class ApiUploadService {
 
     @Autowired
@@ -36,15 +39,15 @@ public class ApiUploadService {
                 .concat("/applications/%s/apis");
     }
 
-    public void upload(String spec) {
+    public void upload(String filename, String spec) {
         ApiDTO apiDTO = ApiSpecParserService.parse(spec);
         if (StringUtils.isBlank(apiDTO.getApplicationId())) {
-            throw new RuntimeException("Application ID not mentioned in the swagger file");
+            throw new RuntimeException(Constants.APP_ID_NOT_FOUND);
         }
         ByteArrayResource byteArrayResource = new ByteArrayResource(spec.getBytes()) {
             @Override
             public String getFilename() {
-                return "swagger.yml";
+                return filename;
             }
         };
         LinkedMultiValueMap<String, Object> map = new LinkedMultiValueMap<>();
@@ -55,6 +58,6 @@ public class ApiUploadService {
                 HttpMethod.POST,
                 requestEntity,
                 ApiDTO.class);
-        assert HttpStatus.CREATED == responseEntity.getStatusCode();
+        assert HttpStatus.CREATED == responseEntity.getStatusCode() : Constants.UPLOAD_FAILED;
     }
 }

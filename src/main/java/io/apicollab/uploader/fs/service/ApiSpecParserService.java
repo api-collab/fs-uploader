@@ -20,6 +20,8 @@ import org.apache.commons.lang3.StringUtils;
 @Slf4j
 class ApiSpecParserService {
 
+    private static final String APP_ID_ATTRIBUTE = "x-app-id";
+
     public static ApiDTO parse(String spec) {
         if (StringUtils.isBlank(spec)) {
             throw new UploaderException(Constants.API_SPEC_EMPTY);
@@ -40,31 +42,35 @@ class ApiSpecParserService {
         if (result.getOpenAPI() == null || !result.getMessages().isEmpty()) {
             log.error(result.getMessages().toString());
             throw new UploaderException(Constants.API_SPEC_PARSE_FAILURE);
-        } else {
-            OpenAPI openAPI = result.getOpenAPI();
-            Info info = openAPI.getInfo();
-            // Check basic information
-            String appId = info.getExtensions() == null ? null : info.getExtensions().get("x-app-id") == "null"
-                    ? null : String.valueOf(info.getExtensions().get("x-app-id"));
-            return ApiDTO.builder()
-                    .applicationId(appId).build();
         }
+        OpenAPI openAPI = result.getOpenAPI();
+        Info info = openAPI.getInfo();
+        // Get app id
+        String appId = null;
+        if (info.getExtensions() != null) {
+            appId = String.valueOf(info.getExtensions().get(APP_ID_ATTRIBUTE));
+        }
+        if ("null".equals(appId)) {
+            appId = null;
+        }
+        return ApiDTO.builder()
+                .applicationId(appId).build();
     }
 
     private ApiDTO parseSwagger(String swaggerString) {
         Swagger swagger = new SwaggerParser().parse(swaggerString);
         if (swagger == null) {
             throw new UploaderException(Constants.API_SPEC_PARSE_FAILURE);
-        } else {
-            io.swagger.models.Info info = swagger.getInfo();
-            if (info == null) {
-                throw new UploaderException(Constants.API_SPEC_PARSE_FAILURE);
-            }
-            String appId = info.getVendorExtensions().get("x-app-id") == null
-                    ? null : String.valueOf(info.getVendorExtensions().get("x-app-id"));
-            return ApiDTO.builder()
-                    .applicationId(appId).build();
         }
+        io.swagger.models.Info info = swagger.getInfo();
+        if (info == null) {
+            throw new UploaderException(Constants.API_SPEC_PARSE_FAILURE);
+        }
+        // Get app id
+        String appId = info.getVendorExtensions().get(APP_ID_ATTRIBUTE) == null
+                ? null : String.valueOf(info.getVendorExtensions().get(APP_ID_ATTRIBUTE));
+        return ApiDTO.builder()
+                .applicationId(appId).build();
     }
 
 }
